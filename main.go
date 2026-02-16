@@ -61,6 +61,18 @@ func main() {
 		log.Fatalf("creating perf reader: %v", err)
 	}
 
+	// Print header
+	fmt.Printf("\n%s╔═══════════════════════════════════════════════════════════════╗%s\n", colorCyan, colorReset)
+	fmt.Printf("%s║          Process Execution Monitor (eBPF Monitor)             ║%s\n", colorCyan, colorReset)
+	fmt.Printf("%s╚═══════════════════════════════════════════════════════════════╝%s\n\n", colorCyan, colorReset)
+	fmt.Printf("%sTIMESTAMP%s      %sCPU%s      %sPID%s          %sCOMMAND%s            %sPATH%s\n",
+		colorCyan, colorReset,
+		colorYellow, colorReset,
+		colorGreen, colorReset,
+		colorBlue, colorReset,
+		colorPurple, colorReset)
+	fmt.Println(strings.Repeat("─", 80))
+
 	for {
 
 		// Each event corresponds to one execve captured by the eBPF program.
