@@ -1,4 +1,4 @@
-APP=exec_scrape
+APP=ebpf-monitor
 
 .PHONY: build
 build: gen $(APP)
@@ -8,35 +8,21 @@ run: build
 	sudo ./$(APP)
 
 .PHONY: gen
-gen: sum vmlinux src/gen_execve_bpfel.go
-
-.PHONY: vmlinux
-vmlinux: src/bpf/vmlinux.h
-
-.PHONY: sum
-sum: go.sum
+gen: vmlinux.h
+	go generate
 
 .PHONY: fmt
-fmt: sum
-	go fmt src/*.go
+fmt:
+	go fmt *.go
 
 .PHONY: clean
 clean:
 	-rm $(APP)
-	-rm src/gen*
-	-rm src/bpf/vmlinux.h
-	-rm go.sum
-	sed 's/v.*/latest/g' -i go.mod
+	-rm gen_execve_*
+	-rm vmlinux.h
 
-$(APP): src/main.go src/gen_execve_bpfel.go
-	CGO_ENABLED=0 go build -o $(APP) src/*.go
+$(APP): main.go gen_execve_bpfel.go
+	CGO_ENABLED=0 go build -o $(APP)
 
-src/bpf/vmlinux.h:
-	bpftool btf dump file /sys/kernel/btf/vmlinux format c > src/bpf/vmlinux.h
-
-src/gen_execve_bpfel.go: src/bpf/execve.bpf.c
-	go generate src/*.go
-
-go.sum:
-	go mod download github.com/cilium/ebpf
-	go get github.com/cilium/ebpf/internal/unix
+vmlinux.h:
+	bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
