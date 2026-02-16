@@ -1,16 +1,16 @@
 package main
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpfel -cc clang gen_execve ./bpf/execve.bpf.c -- -I/usr/include/bpf -I.
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target bpfel -cc clang gen_execve ./execve.bpf.c -- -I/usr/include/bpf -I.
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/cilium/ebpf/link"
-	"github.com/cilium/ebpf/perf"
-	"golang.org/x/sys/unix"
 	"log"
 	"os"
+
+	"github.com/cilium/ebpf/link"
+	"github.com/cilium/ebpf/perf"
 )
 
 type exec_data_t struct {
@@ -19,22 +19,22 @@ type exec_data_t struct {
 	Comm   [32]byte
 }
 
-func setlimit() {
-	if err := unix.Setrlimit(unix.RLIMIT_MEMLOCK,
-		&unix.Rlimit{
-			Cur: unix.RLIM_INFINITY,
-			Max: unix.RLIM_INFINITY,
-		}); err != nil {
-		log.Fatalf("failed to set temporary rlimit: %v", err)
-	}
-}
-
 func main() {
-	setlimit()
+	// Remove the 64KB locked-memory limit so eBPF can allocate kernel memory.
+	// On old kernels (< 5.11), we must raise this limit or eBPF loading fails.
+	// On new kernels (≥ 5.11), this is a harmless no-op (uses cgroup accounting).
+	if err := rlimit.RemoveMemlock(); err != nil {
+		log.Fatal("Failed to remove memlock limit:", err)
+	}
 
 	objs := gen_execveObjects{}
 
-	loadGen_execveObjects(&objs, nil)
+	// Load eBPF program into kernel and fill the objs
+	if err := loadGen_execveObjects(&objs, nil); err != nil {
+		log.Fatal("Loading eBPF objects:", err)
+	}
+
+	// Attach the program to the execve hook - now it's watching!
 	link.Tracepoint("syscalls", "sys_enter_execve", objs.EnterExecve)
 
 	rd, err := perf.NewReader(objs.Events, os.Getpagesize())
