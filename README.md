@@ -12,6 +12,8 @@ Watch every program execution on your Linux system with zero overhead.
 [![eBPF](https://img.shields.io/badge/eBPF-Kernel%205.11%2B-blue?style=flat)](https://ebpf.io/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-purple?style=flat&logo=github&logoColor=white)](https://github.com/ackreq/ebpf-monitor/pulls)
 
+![eBPF Monitor Showcase](showcase.png)
+
 </div>
 
 ## Features
