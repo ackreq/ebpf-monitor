@@ -25,10 +25,27 @@ const (
 	colorPurple = "\033[35m"
 )
 
-type exec_data_t struct {
-	Pid    uint32
-	F_name [32]byte
-	Comm   [32]byte
+type execData struct {
+	Pid   uint32
+	FName [32]byte
+	Comm  [32]byte
+}
+
+// Print header
+func printHeader() {
+	fmt.Printf("\n%s╔═══════════════════════════════════════════════════════════════╗%s\n", colorCyan, colorReset)
+	fmt.Printf("%s║          Process Execution Monitor (eBPF Monitor)             ║%s\n", colorCyan, colorReset)
+	fmt.Printf("%s╚═══════════════════════════════════════════════════════════════╝%s\n\n", colorCyan, colorReset)
+
+	fmt.Printf("%sTIMESTAMP%s      %sCPU%s      %sPID%s          %sCOMMAND%s            %sPATH%s\n",
+		colorCyan, colorReset,
+		colorYellow, colorReset,
+		colorGreen, colorReset,
+		colorBlue, colorReset,
+		colorPurple, colorReset,
+	)
+
+	fmt.Println(strings.Repeat("─", 80))
 }
 
 func main() {
@@ -61,17 +78,7 @@ func main() {
 		log.Fatalf("creating perf reader: %v", err)
 	}
 
-	// Print header
-	fmt.Printf("\n%s╔═══════════════════════════════════════════════════════════════╗%s\n", colorCyan, colorReset)
-	fmt.Printf("%s║          Process Execution Monitor (eBPF Monitor)             ║%s\n", colorCyan, colorReset)
-	fmt.Printf("%s╚═══════════════════════════════════════════════════════════════╝%s\n\n", colorCyan, colorReset)
-	fmt.Printf("%sTIMESTAMP%s      %sCPU%s      %sPID%s          %sCOMMAND%s            %sPATH%s\n",
-		colorCyan, colorReset,
-		colorYellow, colorReset,
-		colorGreen, colorReset,
-		colorBlue, colorReset,
-		colorPurple, colorReset)
-	fmt.Println(strings.Repeat("─", 80))
+	printHeader()
 
 	for {
 
@@ -90,20 +97,20 @@ func main() {
 		}
 
 		// Wrap the raw bytes sent by the eBPF program in a buffer so we can decode them.
-		b_arr := bytes.NewBuffer(ev.RawSample)
+		bArr := bytes.NewBuffer(ev.RawSample)
 
 		// Prepare a Go struct matching the C struct layout to hold the decoded data.
-		var data exec_data_t
+		var data execData
 
 		// Prepare a Go struct matching the C struct layout to hold the decoded data.
-		if err := binary.Read(b_arr, binary.LittleEndian, &data); err != nil {
+		if err := binary.Read(bArr, binary.LittleEndian, &data); err != nil {
 			log.Printf("parsing perf event: %s", err)
 			continue
 		}
 
 		// Convert byte arrays to clean strings (remove null terminators).
 		comm := strings.TrimRight(string(data.Comm[:]), "\x00")
-		fname := strings.TrimRight(string(data.F_name[:]), "\x00")
+		fname := strings.TrimRight(string(data.FName[:]), "\x00")
 		timestamp := time.Now().Format("15:04:05.000")
 
 		// Print which CPU saw the execve, which command ran, its PID, and the filename.
